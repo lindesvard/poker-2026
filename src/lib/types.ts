@@ -34,6 +34,7 @@ export type Action =
 	| { type: "timer.toggle" }
 	| { type: "timer.reset" }
 	| { type: "level.next" }
+	| { type: "level.advance" }
 	| { type: "level.prev" }
 	| { type: "level.jump"; payload: { index: number } }
 	| { type: "pot.adjust"; payload: { delta: number } }

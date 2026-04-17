@@ -11,6 +11,7 @@ const STATE_FILE = path.resolve(
 type G = typeof globalThis & {
 	__POKER_STATE__?: AppState;
 	__POKER_SUBS__?: Set<(s: AppState) => void>;
+	__POKER_TIMEOUT__?: ReturnType<typeof setTimeout> | null;
 };
 const g = globalThis as G;
 
@@ -48,6 +49,37 @@ function persist(state: AppState): void {
 	}
 }
 
+function remainingMs(state: AppState): number {
+	const durationMs = state.levelDurationSec * 1000;
+	const running = state.timer.running && state.timer.levelStartedAt != null;
+	const elapsed =
+		state.timer.elapsedBeforePauseMs +
+		(running ? Date.now() - (state.timer.levelStartedAt as number) : 0);
+	return Math.max(0, durationMs - elapsed);
+}
+
+function scheduleAutoAdvance(state: AppState): void {
+	if (g.__POKER_TIMEOUT__) {
+		clearTimeout(g.__POKER_TIMEOUT__);
+		g.__POKER_TIMEOUT__ = null;
+	}
+	const current = state.structure[state.currentLevelIndex];
+	const atLast = state.currentLevelIndex >= state.structure.length - 1;
+	if (!state.timer.running || !current || current.stopp || atLast) return;
+	const ms = remainingMs(state);
+	g.__POKER_TIMEOUT__ = setTimeout(() => {
+		g.__POKER_TIMEOUT__ = null;
+		// Only advance if the timer is still running and has actually run out.
+		const s = g.__POKER_STATE__;
+		if (!s || !s.timer.running) return;
+		if (remainingMs(s) > 0) {
+			scheduleAutoAdvance(s);
+			return;
+		}
+		dispatch({ type: "level.advance" });
+	}, ms);
+}
+
 if (!g.__POKER_STATE__) g.__POKER_STATE__ = load();
 if (!g.__POKER_SUBS__) g.__POKER_SUBS__ = new Set();
 
@@ -60,6 +92,7 @@ export function dispatch(action: Action): AppState {
 	if (next === g.__POKER_STATE__) return next;
 	g.__POKER_STATE__ = next;
 	persist(next);
+	scheduleAutoAdvance(next);
 	for (const cb of g.__POKER_SUBS__!) {
 		try {
 			cb(next);

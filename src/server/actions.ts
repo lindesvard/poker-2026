@@ -50,13 +50,26 @@ export function applyAction(state: AppState, action: Action): AppState {
 				state.structure.length - 1,
 			);
 			if (nextIndex === state.currentLevelIndex) return state;
+			return {
+				...state,
+				currentLevelIndex: nextIndex,
+				timer: { running: false, levelStartedAt: null, elapsedBeforePauseMs: 0 },
+			};
+		}
+
+		case "level.advance": {
+			const nextIndex = Math.min(
+				state.currentLevelIndex + 1,
+				state.structure.length - 1,
+			);
+			if (nextIndex === state.currentLevelIndex) return state;
 			const next = state.structure[nextIndex];
 			return {
 				...state,
 				currentLevelIndex: nextIndex,
 				timer: next?.stopp
 					? { running: false, levelStartedAt: null, elapsedBeforePauseMs: 0 }
-					: { running: false, levelStartedAt: null, elapsedBeforePauseMs: 0 },
+					: { running: true, levelStartedAt: Date.now(), elapsedBeforePauseMs: 0 },
 			};
 		}
 
