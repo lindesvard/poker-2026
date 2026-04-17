@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1.7
-
 ############################
 # Dependencies
 ############################
@@ -7,8 +5,7 @@ FROM node:22-alpine AS deps
 WORKDIR /app
 RUN corepack enable
 COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile
 
 ############################
 # Build
